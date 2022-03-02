@@ -14,14 +14,11 @@ from upscaler.models import ESRGAN, ESRGANConfig
 from geniverse.models import TamingDecoder
 from geniverse_hub import hub_utils
 
-URL = "http://localhost:8008/"
-# URL = "http://34.255.194.217:8008/"
-
 
 class GenerationManager:
     def __init__(self, ):
         self.generating = False
-        self.user_queue_list = []
+        self.status_queue_list = []
         self.generation_results_dict = {}
 
         clip_model_name_list = [
@@ -252,16 +249,6 @@ class GenerationManager:
 
         return status
 
-    def get_user_results(
-        self,
-        user_id: str,
-    ):
-        result = None
-        if user_id in self.generation_results_dict.keys():
-            result = self.generation_results_dict.pop(user_id)
-
-        return result
-
     def start_job(
         self,
         user_id: str,
@@ -270,7 +257,7 @@ class GenerationManager:
         self.user_queue_list.append(user_id, )
 
         job_worker = Thread(
-            target=self.generate_from_prompt,
+            self.generate_from_prompt,
             kwargs=kwargs,
         )
         job_worker.start()
@@ -341,8 +328,7 @@ class GenerationManager:
 
             # nft_list.append(gen_img_pil, )
 
-            image_path = f"results/{filename}.png"
-            gen_img_pil.save(image_path)
+            # gen_img_pil.save(f"results/{filename}.png", )
 
             # fps = 10
             # cmd = ("ffmpeg -y "
@@ -357,12 +343,12 @@ class GenerationManager:
             # subprocess.check_call(cmd, shell=True)
 
         self.generation_results_dict[user_id] = {
-            "image": f"{URL}{image_path}",
+            "image": gen_img_pil,
         }
 
         self.generating = False
 
-        return filename
+        return
 
 
 if __name__ == "__main__":
