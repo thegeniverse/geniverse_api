@@ -46,7 +46,9 @@ generation_manager = GenerationManager()
     methods=["POST"],
 )
 @api_key_required
-def generate():
+def generate(auth_data, ):
+    print(f"{auth_data=}")
+
     try:
         prompt_list = request.form.get("text").split("-")
 
@@ -139,7 +141,7 @@ def generate():
     methods=["GET"],
 )
 def status():
-    user_id = arguments.args.get("userId")
+    user_id = request.args.get("userId")
     return {"status": generation_manager.get_user_status(user_id)}
 
 
