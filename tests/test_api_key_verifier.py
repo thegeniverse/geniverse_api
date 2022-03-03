@@ -8,10 +8,9 @@ class AttrDict(dict):
 
 
 def test_token_parser():
-    def single_token_file_stub():
-        return ["sample_token,sample_duration"]
+    tokens = ["sample_token,sample_duration"]
 
-    tokens = auth.parse_tokens(single_token_file_stub)
+    tokens = auth.parse_tokens(tokens)
 
     assert len(tokens) == 1
     assert tokens["sample_token"] == "sample_duration"

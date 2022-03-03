@@ -4,9 +4,8 @@ from functools import wraps
 from operator import itemgetter
 
 
-def parse_tokens(read_token_fn):
+def parse_tokens(raw_tokens):
     "Return all tokens given a token_reader"
-    raw_tokens = read_token_fn()
 
     def line_is_valid(line):
         line_is_not_comment = not line.startswith("#")
@@ -39,6 +38,12 @@ def create_file_token_reader(tokens_path="tokens.txt"):
 
 
 def create_api_key_guard(config):
+    """Return an API Key guard. The configuration file needs the following keys:
+
+    - "request" - e.g. the flask request object
+    - "token_reader" - a function that returns an iterable of "token,duration" strings
+    - "jwt_secret" - the JWT secret key used to decode the API keys
+    """
     request = config.get("request")
     token_reader = config.get("token_reader")
     jwt_secret = config.get("jwt_secret")
@@ -59,7 +64,7 @@ def create_api_key_guard(config):
                         "payload": {"reason": "Access token not in request."},
                     }
                 )
-            stored_tokens = parse_tokens(token_reader)
+            stored_tokens = parse_tokens(token_reader())
             token = request.headers["X-Access-Token"]
             if token in stored_tokens:
                 assert jwt_secret is not None
