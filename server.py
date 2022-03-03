@@ -3,7 +3,6 @@ import base64
 import requests
 import uuid
 from io import BytesIO
-from threading import Thread
 
 from flask import Flask, request
 from PIL import Image
@@ -97,7 +96,7 @@ def generate():
 
         print("param dict", param_dict)
 
-        user_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
         _ = generation_manager.start_job(
             user_id=user_id,
             prompt_list=prompt_list,
@@ -126,8 +125,18 @@ def generate():
     methods=['GET'],
 )
 def status():
-    user_id = arguments.args.get("userId")
-    return {"status": generation_manager.get_user_status(user_id)}
+    user_id = request.args.get("userId")
+
+    status = generation_manager.get_user_status(user_id, )
+
+    results = None
+    if status == "Done":
+        results = generation_manager.get_user_results(user_id, )
+
+    return {
+        "status": status,
+        "results": results,
+    }
 
 
 app.run(
