@@ -145,5 +145,5 @@ def status():
 
 app.run(
     host="0.0.0.0",
-    port=8008,
+    port=8100,
 )
