@@ -2,3 +2,6 @@
 __pycache__
 results
 venv
+
+__pycache__
+tests/__pycache__
