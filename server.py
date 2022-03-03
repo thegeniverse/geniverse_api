@@ -2,14 +2,27 @@ from ast import arguments
 import base64
 import requests
 import uuid
+import os
 from io import BytesIO
+from threading import Thread
 
 from flask import Flask, request
 from PIL import Image
 
 from generation_utils import GenerationManager
 
+from auth import create_api_key_guard, create_file_token_reader
+
 app = Flask(__name__)
+
+token_reader = create_file_token_reader()
+api_key_required = create_api_key_guard(
+    {
+        "request": request,
+        "token_reader": token_reader,
+        "jwt_secret": os.environ["JWT_SECRET_KEY"],
+    }
+)
 
 
 def base64_to_PIL(base64_encoding: str):
@@ -18,9 +31,9 @@ def base64_to_PIL(base64_encoding: str):
 
 def pil_to_base64(img):
     buffer = BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format="PNG")
     buffer.seek(0)
-    data_uri = base64.b64encode(buffer.read()).decode('ascii')
+    data_uri = base64.b64encode(buffer.read()).decode("ascii")
 
     return data_uri
 
@@ -29,9 +42,10 @@ generation_manager = GenerationManager()
 
 
 @app.route(
-    '/generate',
-    methods=['POST'],
+    "/generate",
+    methods=["POST"],
 )
+@api_key_required
 def generate():
     try:
         prompt_list = request.form.get("text").split("-")
@@ -96,7 +110,7 @@ def generate():
 
         print("param dict", param_dict)
 
-        user_id = str(uuid.uuid4())
+        user_id = uuid.uuid4()
         _ = generation_manager.start_job(
             user_id=user_id,
             prompt_list=prompt_list,
@@ -121,22 +135,12 @@ def generate():
 
 
 @app.route(
-    '/status',
-    methods=['GET'],
+    "/status",
+    methods=["GET"],
 )
 def status():
-    user_id = request.args.get("userId")
-
-    status = generation_manager.get_user_status(user_id, )
-
-    results = None
-    if status == "Done":
-        results = generation_manager.get_user_results(user_id, )
-
-    return {
-        "status": status,
-        "results": results,
-    }
+    user_id = arguments.args.get("userId")
+    return {"status": generation_manager.get_user_status(user_id)}
 
 
 app.run(
