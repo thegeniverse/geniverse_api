@@ -229,8 +229,10 @@ class GenerationManager:
             gc.collect()
 
         if do_upscale:
+            print(f"{img_rec.max()=}")
             img_rec = self.upscaler.upscale(img_rec, ).to(
                 device, torch.float32) / 255.
+            print(f"{img_rec.max()=}")
 
         return img_rec, latents
 
@@ -344,20 +346,20 @@ class GenerationManager:
             image_path = f"results/{filename}.png"
             gen_img_pil.save(image_path)
 
-            # fps = 10
-            # cmd = ("ffmpeg -y "
-            #        "-r 8 "
-            #        f"-pattern_type glob -i '{results_dir}/0*.png' "
-            #        "-vcodec libx264 "
-            #        f"-crf {fps} "
-            #        "-pix_fmt yuv420p "
-            #        "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-            #        f"results/{filename}.mp4;")
+            fps = 10
+            cmd = ("ffmpeg -y "
+                   "-r 8 "
+                   f"-pattern_type glob -i '{results_dir}/0*.png' "
+                   "-vcodec libx264 "
+                   f"-crf {fps} "
+                   "-pix_fmt yuv420p "
+                   "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
+                   f"results/{filename}.mp4;")
 
-            # subprocess.check_call(cmd, shell=True)
+            subprocess.check_call(cmd, shell=True)
 
         self.generation_results_dict[user_id] = {
-            "image": f"{URL}{image_path}",
+            "image": f"{URL}{filename}",
         }
 
         self.generating = False
