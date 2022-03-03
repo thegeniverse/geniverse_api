@@ -14,8 +14,8 @@ from upscaler.models import ESRGAN, ESRGANConfig
 from geniverse.models import TamingDecoder
 from geniverse_hub import hub_utils
 
-URL = "http://localhost:8008/"
-# URL = "http://34.255.194.217:8008/"
+#URL = "http://localhost:8008/"
+URL = "http://34.255.194.217:8099/"
 
 
 class GenerationManager:
@@ -337,6 +337,7 @@ class GenerationManager:
                 init_step += auto_params["num_iterations"]
                 cond_img = gen_img.detach().clone()
 
+            print('gen image', gen_img.max())
             gen_img_pil = torchvision.transforms.ToPILImage()(gen_img[0])
 
             # nft_list.append(gen_img_pil, )
@@ -344,20 +345,20 @@ class GenerationManager:
             image_path = f"results/{filename}.png"
             gen_img_pil.save(image_path)
 
-            # fps = 10
-            # cmd = ("ffmpeg -y "
-            #        "-r 8 "
-            #        f"-pattern_type glob -i '{results_dir}/0*.png' "
-            #        "-vcodec libx264 "
-            #        f"-crf {fps} "
-            #        "-pix_fmt yuv420p "
-            #        "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-            #        f"results/{filename}.mp4;")
+            fps = 10
+            cmd = ("ffmpeg -y "
+                   "-r 8 "
+                   f"-pattern_type glob -i '{results_dir}/0*.png' "
+                   "-vcodec libx264 "
+                   f"-crf {fps} "
+                   "-pix_fmt yuv420p "
+                   "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
+                   f"results/{filename}.mp4;")
 
-            # subprocess.check_call(cmd, shell=True)
+            subprocess.check_call(cmd, shell=True)
 
         self.generation_results_dict[user_id] = {
-            "image": f"{URL}{image_path}",
+            "image": f"{URL}{filename}",
         }
 
         self.generating = False
