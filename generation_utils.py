@@ -101,6 +101,8 @@ class GenerationManager:
         if cond_img.max() > 1:
             cond_img = cond_img / 255.
 
+        print('cond img max', cond_img.max())
+
         cond_img = cond_img.to(device, )
         cond_img_size = cond_img.shape[2::]
         scale = (max(resolution)) / max(cond_img_size)
