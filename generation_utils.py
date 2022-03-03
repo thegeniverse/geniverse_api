@@ -17,6 +17,7 @@ from geniverse_hub import hub_utils
 #URL = "http://localhost:8008/"
 URL = "http://34.255.194.217:8099/"
 
+
 class GenerationManager:
     def __init__(self, ):
         self.generating = False
