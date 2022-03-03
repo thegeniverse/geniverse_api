@@ -18,6 +18,7 @@ URL = "http://localhost:8008/"
 # URL = "http://34.255.194.217:8008/"
 
 
+
 class GenerationManager:
     def __init__(self, ):
         self.generating = False
