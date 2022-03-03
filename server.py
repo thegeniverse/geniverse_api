@@ -2,6 +2,7 @@ from ast import arguments
 import base64
 import requests
 import uuid
+import os
 from io import BytesIO
 from threading import Thread
 
@@ -10,7 +11,18 @@ from PIL import Image
 
 from generation_utils import GenerationManager
 
+from auth import create_api_key_guard, create_file_token_reader
+
 app = Flask(__name__)
+
+token_reader = create_file_token_reader()
+api_key_required = create_api_key_guard(
+    {
+        "request": request,
+        "token_reader": token_reader,
+        "jwt_secret": os.environ["JWT_SECRET_KEY"],
+    }
+)
 
 
 def base64_to_PIL(base64_encoding: str):
@@ -19,9 +31,9 @@ def base64_to_PIL(base64_encoding: str):
 
 def pil_to_base64(img):
     buffer = BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format="PNG")
     buffer.seek(0)
-    data_uri = base64.b64encode(buffer.read()).decode('ascii')
+    data_uri = base64.b64encode(buffer.read()).decode("ascii")
 
     return data_uri
 
@@ -30,9 +42,10 @@ generation_manager = GenerationManager()
 
 
 @app.route(
-    '/generate',
-    methods=['POST'],
+    "/generate",
+    methods=["POST"],
 )
+@api_key_required
 def generate():
     try:
         prompt_list = request.form.get("text").split("-")
@@ -122,8 +135,8 @@ def generate():
 
 
 @app.route(
-    '/status',
-    methods=['GET'],
+    "/status",
+    methods=["GET"],
 )
 def status():
     user_id = arguments.args.get("userId")
