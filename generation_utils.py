@@ -232,10 +232,8 @@ class GenerationManager:
             gc.collect()
 
         if do_upscale:
-            print(f"{img_rec.max()=}")
             img_rec = self.upscaler.upscale(img_rec, ).to(
                 device, torch.float32) / 255.
-            print(f"{img_rec.max()=}")
 
         return img_rec, latents
 
