@@ -14,8 +14,8 @@ from upscaler.models import ESRGAN, ESRGANConfig
 from geniverse.models import TamingDecoder
 from geniverse_hub import hub_utils
 
-URL = "http://localhost:8008/"
-# URL = "http://34.255.194.217:8008/"
+# URL = "http://localhost:8008/"
+URL = "http://34.255.194.217:8099/"
 
 
 
@@ -24,6 +24,8 @@ class GenerationManager:
         self.generating = False
         self.user_queue_list = []
         self.generation_results_dict = {}
+
+        self.current_user_id = ""
 
         clip_model_name_list = [
             "ViT-B/32",
@@ -98,6 +100,8 @@ class GenerationManager:
             f"{loss_type} not recognized. " f"Only " \
             f"{' or '.join(self.generator.supported_loss_types)} supported."
 
+        cond_img = cond_img.to(torch.float32)
+       
         if cond_img.max() > 1:
             cond_img = cond_img / 255.
 
@@ -174,8 +178,14 @@ class GenerationManager:
                     return grad
 
                 img_rec_hook = latents.register_hook(scale_grad, )
+                
+                print(f"{latents.max()=}")
+                print(f"{img_rec.max()=}")
+                print(f"{mask.max()=}")
+                print(f"{cond_img.max()=}")
 
                 img_rec = img_rec * mask + cond_img * (1 - mask)
+
                 if step == 0:
                     torchvision.transforms.ToPILImage()(cond_img[0]).save(
                         f"{results_dir}/{step:04d}.png", )
@@ -232,10 +242,14 @@ class GenerationManager:
             gc.collect()
 
         if do_upscale:
-            print(f"{img_rec.max()=}")
+            #torchvision.transforms.ToPILImage()(img_rec[0]).save("results/test.png")
+            print(" ")
+            img_rec = img_rec * 255.
+            img_rec = img_rec.to(torch.uint8)
             img_rec = self.upscaler.upscale(img_rec, ).to(
                 device, torch.float32) / 255.
             print(f"{img_rec.max()=}")
+            print(" ")
 
         return img_rec, latents
 
@@ -248,12 +262,14 @@ class GenerationManager:
         if user_id in self.user_queue_list:
             status = "Waiting"
 
-        if user_id not in self.user_queue_list:
-            if user_id in self.generation_results_dict.keys():
-                status = "Done"
+        elif user_id in self.generation_results_dict.keys():
+            status = "Done"
+        
+        elif user_id == self.current_user_id:
+            status = "Generating"
 
-            else:
-                status = "Generating"
+        else:
+            status = "Unknown"
 
         return status
 
@@ -290,82 +306,90 @@ class GenerationManager:
         auto: bool = True,
         param_dict: Dict[str, Any, ] = None,
     ) -> List[Image.Image]:
-        while self.generating:
-            time.sleep(5)
-            logging.debug("Sleeping...")
+        try:
+            while self.generating:
+                time.sleep(5)
+                logging.debug("Sleeping...")
 
-        user_id = self.user_queue_list.pop()
+            user_id = self.user_queue_list.pop()
+            self.current_user_id = user_id
 
-        self.generating = True
+            self.generating = True
 
-        filename = f"{user_id}-{'-'.join(['_'.join(prompt.split()) for prompt in prompt_list], )}-{'_'.join(str(datetime.now()).split())}"
-        results_dir = os.path.join("results", filename)
-        os.makedirs(
-            results_dir,
-            exist_ok=True,
-        )
+            filename = f"{'_'.join(str(datetime.now()).split())}-{'-'.join(['_'.join(prompt.split()) for prompt in prompt_list], )}-{user_id}"
+            results_dir = os.path.join("results", filename)
+            os.makedirs(
+                results_dir,
+                exist_ok=True,
+            )
 
-        if cond_img is None:
-            cond_img = Image.open("cosmic.png")
+            if cond_img is None:
+                cond_img = Image.open("cosmic.png")
 
-        cond_img = torchvision.transforms.PILToTensor()(cond_img, )[None, :]
+            cond_img = torchvision.transforms.PILToTensor()(cond_img, )[None, :]
 
-        prompt_weight_list = [1 for _ in range(len(prompt_list))]
+            prompt_weight_list = [1 for _ in range(len(prompt_list))]
 
-        if auto or param_dict is None:
-            param_dict_list = self.auto_param_dict_list
-        else:
-            param_dict_list = [
-                param_dict,
-            ]
+            if auto or param_dict is None:
+                param_dict_list = self.auto_param_dict_list
+            else:
+                param_dict_list = [
+                    param_dict,
+                ]
 
-        nft_list = []
-        for _ in range(num_nfts):
-            init_step = 0
-            for params_idx, auto_params in enumerate(param_dict_list):
-                gen_img, _latents = self.optimize(
-                    prompt_list=prompt_list,
-                    prompt_weight_list=prompt_weight_list,
-                    num_iterations=auto_params["num_iterations"],
-                    resolution=auto_params["resolution"],
-                    cond_img=cond_img,
-                    device="cuda",
-                    lr=auto_params["lr"],
-                    loss_type="cosine_similarity",
-                    num_augmentations=auto_params["num_crops"],
-                    aug_noise_factor=0.11,
-                    num_accum_steps=4,
-                    init_step=init_step,
-                    do_upscale=auto_params["do_upscale"],
-                    results_dir=results_dir,
-                )
-                init_step += auto_params["num_iterations"]
-                cond_img = gen_img.detach().clone()
+            nft_list = []
+            for _ in range(num_nfts):
+                init_step = 0
+                for params_idx, auto_params in enumerate(param_dict_list):
+                    gen_img, _latents = self.optimize(
+                        prompt_list=prompt_list,
+                        prompt_weight_list=prompt_weight_list,
+                        num_iterations=auto_params["num_iterations"],
+                        resolution=auto_params["resolution"],
+                        cond_img=cond_img,
+                        device="cuda",
+                        lr=auto_params["lr"],
+                        loss_type="cosine_similarity",
+                        num_augmentations=auto_params["num_crops"],
+                        aug_noise_factor=0.11,
+                        num_accum_steps=4,
+                        init_step=init_step,
+                        do_upscale=auto_params["do_upscale"],
+                        results_dir=results_dir,
+                    )
+                    init_step += auto_params["num_iterations"]
+                    cond_img = gen_img.detach().clone()
 
-            gen_img_pil = torchvision.transforms.ToPILImage()(gen_img[0])
+                gen_img_pil = torchvision.transforms.ToPILImage()(gen_img[0])
 
-            # nft_list.append(gen_img_pil, )
+                # nft_list.append(gen_img_pil, )
 
-            image_path = f"results/{filename}.png"
-            gen_img_pil.save(image_path)
+                image_path = f"results/{filename}.png"
+                gen_img_pil.save(image_path)
 
-            fps = 10
-            cmd = ("ffmpeg -y "
-                   "-r 8 "
-                   f"-pattern_type glob -i '{results_dir}/0*.png' "
-                   "-vcodec libx264 "
-                   f"-crf {fps} "
-                   "-pix_fmt yuv420p "
-                   "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-                   f"results/{filename}.mp4;")
+                fps = 10
+                cmd = ("ffmpeg -y "
+                       "-r 8 "
+                       f"-pattern_type glob -i '{results_dir}/0*.png' "
+                       "-vcodec libx264 "
+                       f"-crf {fps} "
+                       "-pix_fmt yuv420p "
+                       "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
+                       f"results/{filename}.mp4;")
 
-            subprocess.check_call(cmd, shell=True)
+                subprocess.check_call(cmd, shell=True)
 
-        self.generation_results_dict[user_id] = {
-            "image": f"{URL}{filename}",
-        }
+            self.generation_results_dict[user_id] = {
+                "generations": f"{URL}{filename}",
+                "image": f"{URL}{filename}.png",
+                "video": f"{URL}{filename}.mp4",
+            }
 
-        self.generating = False
+        except Exception as e:
+            print(f"ERROR {repr(e)}")
+
+        finally:
+            self.generating = False
 
         return filename
 

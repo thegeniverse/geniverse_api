@@ -22,7 +22,8 @@ api_key_required = create_api_key_guard({
     "token_reader":
     token_reader,
     "jwt_secret":
-    os.environ["JWT_SECRET_KEY"],
+    "Fi^!z5D^5YCNxbHxRSJFLXY76CHyMiwy!GmK%kwu",
+    #os.environ["JWT_SECRET_KEY"],
 })
 
 
@@ -113,7 +114,7 @@ def generate(auth_data, ):
 
         print("param dict", param_dict)
 
-        user_id = uuid.uuid4()
+        user_id = str(uuid.uuid4())
         _ = generation_manager.start_job(
             user_id=user_id,
             prompt_list=prompt_list,
