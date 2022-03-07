@@ -18,7 +18,6 @@ from geniverse_hub import hub_utils
 URL = "http://34.255.194.217:8099/"
 
 
-
 class GenerationManager:
     def __init__(self, ):
         self.generating = False
@@ -101,16 +100,11 @@ class GenerationManager:
             f"{' or '.join(self.generator.supported_loss_types)} supported."
 
         cond_img = cond_img.to(torch.float32)
-       
-        if cond_img.max() > 1:
-            cond_img = cond_img / 255.
-
-        print('cond img max', cond_img.max())
 
         cond_img = cond_img.to(device, )
+
         cond_img_size = cond_img.shape[2::]
         scale = (max(resolution)) / max(cond_img_size)
-
         img_resolution = [
             int((cond_img_size[0] * scale) // 16 * 16),
             int((cond_img_size[1] * scale) // 16 * 16)
@@ -159,26 +153,27 @@ class GenerationManager:
 
             logging.info(f"step {step}")
 
+            def scale_grad(grad, ):
+                grad_size = grad.shape[2:4]
+
+                grad_mask = torch.nn.functional.interpolate(
+                    mask,
+                    grad_size,
+                    mode="nearest",
+                )
+
+                grad.data = grad.data * grad_mask
+
+                return grad
+
+            img_rec_hook = latents.register_hook(scale_grad, )
+
             for _num_accum in range(num_accum_steps):
                 loss = 0
 
-                img_rec = self.generator.get_img_from_latents(latents, )
+                img_rec = torch.clip(
+                    self.generator.get_img_from_latents(latents, ), 0, 1)
 
-                def scale_grad(grad, ):
-                    grad_size = grad.shape[2:4]
-
-                    grad_mask = torch.nn.functional.interpolate(
-                        mask,
-                        grad_size,
-                        mode="nearest",
-                    )
-
-                    grad.data = grad.data * grad_mask
-
-                    return grad
-
-                img_rec_hook = latents.register_hook(scale_grad, )
-                
                 print(f"{latents.max()=}")
                 print(f"{img_rec.max()=}")
                 print(f"{mask.max()=}")
@@ -243,13 +238,9 @@ class GenerationManager:
 
         if do_upscale:
             #torchvision.transforms.ToPILImage()(img_rec[0]).save("results/test.png")
-            print(" ")
-            img_rec = img_rec * 255.
-            img_rec = img_rec.to(torch.uint8)
+            img_rec = torch.clip(img_rec, 0, 1)
             img_rec = self.upscaler.upscale(img_rec, ).to(
                 device, torch.float32) / 255.
-            print(f"{img_rec.max()=}")
-            print(" ")
 
         return img_rec, latents
 
@@ -264,7 +255,7 @@ class GenerationManager:
 
         elif user_id in self.generation_results_dict.keys():
             status = "Done"
-        
+
         elif user_id == self.current_user_id:
             status = "Generating"
 
@@ -326,7 +317,15 @@ class GenerationManager:
             if cond_img is None:
                 cond_img = Image.open("cosmic.png")
 
-            cond_img = torchvision.transforms.PILToTensor()(cond_img, )[None, :]
+            cond_img = torchvision.transforms.PILToTensor()(
+                cond_img, )[None, :]
+
+            cond_img = cond_img / 255.
+
+            cond_img = cond_img.to(
+                "cuda",
+                torch.float32,
+            )
 
             prompt_weight_list = [1 for _ in range(len(prompt_list))]
 
