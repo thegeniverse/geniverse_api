@@ -49,7 +49,7 @@ generation_manager = GenerationManager()
 )
 @api_key_required
 def generate(auth_data, ):
-    print(f"{auth_data=}")
+    print(f"auth_data = {auth_data}")
 
     try:
         prompt_list = request.form.get("text").split("-")
