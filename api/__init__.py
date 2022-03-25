@@ -98,7 +98,8 @@ def generate(auth_data):
         print("param dict", param_dict)
 
         user_id = str(uuid.uuid4())
-        _ = generation_manager.start_job(
+
+        generation_manager.start_job(
             user_id=user_id,
             prompt_list=prompt_list,
             num_nfts=num_generations,
