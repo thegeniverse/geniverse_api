@@ -1,7 +1,6 @@
 """Authentication module"""
 import jwt
 from functools import wraps
-from operator import itemgetter
 
 
 def parse_tokens(raw_tokens):
