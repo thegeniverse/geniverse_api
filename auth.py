@@ -49,7 +49,6 @@ def create_api_key_guard(config):
     jwt_secret = config.get("jwt_secret")
 
     assert request is not None
-    #assert request.headers is not None
     assert token_reader is not None
 
     def api_key_required(endpoint_fn):
