@@ -16,15 +16,13 @@ from auth import create_api_key_guard, create_file_token_reader
 app = Flask(__name__)
 
 token_reader = create_file_token_reader()
-api_key_required = create_api_key_guard({
-    "request":
-    request,
-    "token_reader":
-    token_reader,
-    "jwt_secret":
-    "Fi^!z5D^5YCNxbHxRSJFLXY76CHyMiwy!GmK%kwu",
-    #os.environ["JWT_SECRET_KEY"],
-})
+api_key_required = create_api_key_guard(
+    {
+        "request": request,
+        "token_reader": token_reader,
+        "jwt_secret": os.environ["JWT_SECRET_KEY"],
+    }
+)
 
 
 def base64_to_PIL(base64_encoding: str):
@@ -48,7 +46,7 @@ generation_manager = GenerationManager()
     methods=["POST"],
 )
 @api_key_required
-def generate(auth_data, ):
+def generate(auth_data):
     print(f"auth_data = {auth_data}")
 
     try:
@@ -145,11 +143,11 @@ def generate(auth_data, ):
 def status():
     user_id = request.args.get("userId")
 
-    status = generation_manager.get_user_status(user_id, )
+    status = generation_manager.get_user_status(user_id)
 
     results = None
     if status == "Done":
-        results = generation_manager.get_user_results(user_id, )
+        results = generation_manager.get_user_results(user_id)
 
     return {
         "status": status,
