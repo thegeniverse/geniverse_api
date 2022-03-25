@@ -20,10 +20,11 @@ def test_error_when_no_access_token_header():
     config = {"request": AttrDict({"headers": {}}), "token_reader": lambda: []}
     api_guard = auth.create_api_key_guard(config)
 
+    @api_guard
     def unreachable_endpoint(data):
         assert "ERROR" in data["status"]
 
-    response = api_guard(unreachable_endpoint)()
+    unreachable_endpoint()
 
 
 def test_access_token_header():
