@@ -1,10 +1,7 @@
-from ast import arguments
-import base64
 import requests
 import uuid
 import os
 from io import BytesIO
-from threading import Thread
 
 from flask import Flask, request
 from PIL import Image
