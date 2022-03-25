@@ -13,6 +13,7 @@ from generation_utils import GenerationManager
 
 from auth import create_api_key_guard, create_file_token_reader
 
+generation_manager = GenerationManager()
 app = Flask(__name__)
 
 token_reader = create_file_token_reader()
@@ -23,22 +24,6 @@ api_key_required = create_api_key_guard(
         "jwt_secret": os.environ["JWT_SECRET_KEY"],
     }
 )
-
-
-def base64_to_PIL(base64_encoding: str):
-    return Image.open(BytesIO(base64.b64decode(base64_encoding)))
-
-
-def pil_to_base64(img):
-    buffer = BytesIO()
-    img.save(buffer, format="PNG")
-    buffer.seek(0)
-    data_uri = base64.b64encode(buffer.read()).decode("ascii")
-
-    return data_uri
-
-
-generation_manager = GenerationManager()
 
 
 @app.route(
