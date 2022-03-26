@@ -315,6 +315,9 @@ class GenerationManager:
             ]
 
         try:
+            generation_url_list = []
+            video_url_list = []
+            image_url_list = []
             while self.generating:
                 time.sleep(5)
                 logging.info("Already generating. Trying again in 5 seconds.")
@@ -344,7 +347,7 @@ class GenerationManager:
 
             prompt_weight_list = [1 for _ in range(len(prompt_list))]
 
-            for _ in range(num_nfts):
+            for idx in range(num_nfts):
                 init_step = 0
                 for param in param_dict_list:
                     gen_img, _latents = self.optimize(
@@ -368,7 +371,9 @@ class GenerationManager:
 
                 gen_img_pil = torchvision.transforms.ToPILImage()(gen_img[0])
 
-                image_path = f"results/{filename_suffix}.png"
+                iter_filename_suffix = f"{filename_suffix}_{idx}"
+
+                image_path = f"results/{iter_filename_suffix}.png"
                 gen_img_pil.save(image_path)
 
                 fps = 10
@@ -380,15 +385,19 @@ class GenerationManager:
                     f"-crf {fps} "
                     "-pix_fmt yuv420p "
                     "-vf 'pad=ceil(iw/2)*2:ceil(ih/2)*2' "
-                    f"results/{filename_suffix}.mp4;"
+                    f"results/{iter_filename_suffix}.mp4;"
                 )
 
                 subprocess.check_call(cmd, shell=True)
 
+                generation_url_list.append(f"{URL}{iter_filename_suffix}")
+                image_url_list.append(f"{URL}{iter_filename_suffix}.png")
+                video_url_list.append(f"{URL}{iter_filename_suffix}.mp4")
+
             self.generation_results_dict[user_id] = {
-                "generations": f"{URL}{filename_suffix}",
-                "image": f"{URL}{filename_suffix}.png",
-                "video": f"{URL}{filename_suffix}.mp4",
+                "generations": generation_url_list,
+                "image": image_url_list,
+                "video": video_url_list,
             }
 
         except Exception as e:
@@ -397,7 +406,7 @@ class GenerationManager:
         finally:
             self.generating = False
 
-        return filename_suffix
+        return iter_filename_suffix
 
 
 if __name__ == "__main__":
