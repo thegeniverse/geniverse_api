@@ -135,7 +135,7 @@ class GenerationManager:
         for step in range(init_step, init_step + num_iterations):
             optimizer.zero_grad()
 
-            logging.info(f"step {step}")
+            print(f"step {step}")
 
             def scale_grad(grad):
                 grad_size = grad.shape[2:4]
@@ -406,7 +406,7 @@ class GenerationManager:
         finally:
             self.generating = False
 
-        return iter_filename_suffix
+        return filename_suffix
 
 
 if __name__ == "__main__":
