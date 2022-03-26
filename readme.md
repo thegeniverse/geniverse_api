@@ -7,7 +7,7 @@ models such as VQGAN+CLIP.
 
 ## Architecture
 
-`TODO`.
+`TODO`
 
 ## Development
 
