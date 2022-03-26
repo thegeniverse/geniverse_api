@@ -25,7 +25,7 @@ class GenerationManager:
         self.generating = False
         self.generation_results_dict = {}
 
-        self.user_queue_list = []
+        self.user_queue = []
         self.current_user_id = ""
 
         self.generator = TamingDecoder(
@@ -61,6 +61,7 @@ class GenerationManager:
         do_upscale: bool = False,
         results_dir: str = "results",
     ):
+        # Pre-processing
         num_augmentations = max(1, int(num_augmentations / num_accum_steps))
 
         logging.debug(f"Using {num_augmentations} augmentations")
@@ -75,7 +76,6 @@ class GenerationManager:
         )
 
         cond_img = cond_img.to(torch.float32)
-
         cond_img = cond_img.to(device)
 
         cond_img_size = cond_img.shape[2::]
@@ -98,6 +98,8 @@ class GenerationManager:
             (200, 200),
             mode="bilinear",
         )
+
+        # Foreground / Background detection
         mask = (
             self.u2net.get_img_mask(
                 norm_cond_img,
@@ -118,11 +120,11 @@ class GenerationManager:
             f"{results_dir}/mask.png",
         )
 
-        latents = self.generator.get_latents_from_img(cond_img)
+        # Optimization step
 
+        latents = self.generator.get_latents_from_img(cond_img)
         latents = latents.to(device)
         latents = torch.nn.Parameter(latents)
-
         optimizer = torch.optim.AdamW(
             params=[latents],
             lr=lr,
@@ -224,6 +226,7 @@ class GenerationManager:
             torch.cuda.empty_cache()
             gc.collect()
 
+        # Upscaling
         if do_upscale:
             # torchvision.transforms.ToPILImage()(img_rec[0]).save("results/test.png")
             img_rec = torch.clip(img_rec, 0, 1)
@@ -235,17 +238,12 @@ class GenerationManager:
         self,
         user_id: str,
     ):
-        status = ""
-
-        if user_id in self.user_queue_list:
+        if user_id in self.user_queue:
             status = "Waiting"
-
         elif user_id in self.generation_results_dict.keys():
             status = "Done"
-
         elif user_id == self.current_user_id:
             status = "Generating"
-
         else:
             status = "Unknown"
 
@@ -266,7 +264,7 @@ class GenerationManager:
         user_id: str,
         **kwargs,
     ):
-        self.user_queue_list.append(
+        self.user_queue.append(
             user_id,
         )
 
@@ -321,7 +319,7 @@ class GenerationManager:
                 time.sleep(5)
                 logging.info("Already generating. Trying again in 5 seconds.")
 
-            user_id = self.user_queue_list.pop()
+            user_id = self.user_queue.pop()
             self.current_user_id = user_id
 
             self.generating = True
