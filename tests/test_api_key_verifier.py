@@ -1,4 +1,4 @@
-import auth
+from api import auth
 
 
 class AttrDict(dict):
